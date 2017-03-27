@@ -28,9 +28,20 @@ $(OBJDIR):
 $(OBJDIR)/%.o: src/%.c $(INCLUDES) | $(OBJDIR)
 	$(CC) -c $(CFLAGS) $< -o $@
 
+# vitor begin
+
+#### Main program assembly
+#
+#$(APP_NAME): $(OBJDIR)/$(APP_NAME).o  $(OBJDIR)/base64.o
+#	$(CC) $< $(OBJDIR)/base64.o -o $@
+#
+#### EOF
+
 ### Main program assembly
 
-$(APP_NAME): $(OBJDIR)/$(APP_NAME).o  $(OBJDIR)/base64.o
-	$(CC) $< $(OBJDIR)/base64.o -o $@
+$(APP_NAME): $(OBJDIR)/$(APP_NAME).o  $(OBJDIR)/base64.o $(OBJDIR)/parson.o
+	$(CC) $< $(OBJDIR)/base64.o $(OBJDIR)/parson.o -o $@
 
 ### EOF
+
+# vitor end

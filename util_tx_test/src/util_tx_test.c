@@ -39,13 +39,14 @@ Maintainer: Sylvain Miermont
 #include <arpa/inet.h>  /* IP address conversion stuff */
 #include <netdb.h>      /* gai_strerror */
 
+#include "parson.h"
 #include "base64.h"
 
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE MACROS ------------------------------------------------------- */
 
 #define ARRAY_SIZE(a)   (sizeof(a) / sizeof((a)[0]))
-#define MSG(args...)    fprintf(stderr, args) /* message that is destined to the user */
+#define MSG(args...)    fprintf(stdout, args) /* message that is destined to the user */
 
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE CONSTANTS ---------------------------------------------------- */
@@ -57,6 +58,7 @@ Maintainer: Sylvain Miermont
 #define PKT_PULL_DATA   2
 #define PKT_PULL_RESP   3
 #define PKT_PULL_ACK    4
+#define PKT_TX_ACK	5
 
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE VARIABLES (GLOBAL) ------------------------------------------- */
@@ -109,30 +111,30 @@ void usage(void) {
 
 int main(int argc, char **argv)
 {
-    int i, j, x;
+    int i, x;
     unsigned int xu;
     char arg_s[64];
 
     /* application parameters */
     char mod[64] = "LORA"; /* LoRa modulation by default */
-    float f_target = 866.0; /* target frequency */
-    int sf = 10; /* SF10 by default */
-    int bw = 125; /* 125kHz bandwidth by default */
+    float f_target = 923.3; /* target frequency */
+    int sf = 12; /* SF12 by default */
+    int bw = 500; /* 500kHz bandwidth by default */
     int pow = 14; /* 14 dBm by default */
-    int delay = 1000; /* 1 second between packets by default */
+    int delay = 1; /* 1 milisecond between packets by default */
     int repeat = 1; /* sweep only once by default */
-    bool invert = false;
+    bool invert = true;
     float br_kbps = 50; /* 50 kbps by default */
     uint8_t fdev_khz = 25; /* 25 khz by default */
 
     /* packet payload variables */
-    int payload_size = 9; /* minimum size for PER frame */
+    int payload_size = 33; /* minimum size for PER frame */
     uint8_t payload_bin[255];
     char payload_b64[341];
     int payload_index;
 
     /* PER payload variables */
-    uint8_t id = 0;
+    //uint8_t id = 0;
 
     /* server socket creation */
     int sock; /* socket file descriptor */
@@ -154,6 +156,7 @@ int main(int argc, char **argv)
     uint32_t raw_mac_h; /* Most Significant Nibble, network order */
     uint32_t raw_mac_l; /* Least Significant Nibble, network order */
     uint64_t gw_mac; /* MAC address of the client (gateway) */
+    uint8_t ack_command, bok_push_data;
 
     /* prepare hints to open network sockets */
     memset(&hints, 0, sizeof hints);
@@ -267,7 +270,7 @@ int main(int argc, char **argv)
                     MSG("ERROR: invalid Id\n");
                     return EXIT_FAILURE;
                 } else {
-                    id = (uint8_t)xu;
+                    //id = (uint8_t)xu;
                 }
                 break;
 
@@ -324,178 +327,283 @@ int main(int argc, char **argv)
     } else {
         MSG("INFO: %i LoRa pkts @%f MHz (BW %u kHz, SF%i, %uB payload) %i dBm, %i ms between each\n", repeat, f_target, bw, sf, payload_size, pow, delay);
     }
-
-    /* wait to receive a PULL_DATA request packet */
-    MSG("INFO: waiting to receive a PULL_DATA request on port %s\n", serv_port);
-    while (1) {
+    
+    bok_push_data = false;
+    
+    while (1){
+	/* wait to receive a request packet */
+	MSG("INFO: waiting to receive a request on port %s\n", serv_port);
         byte_nb = recvfrom(sock, databuf, sizeof databuf, 0, (struct sockaddr *)&dist_addr, &addr_len);
-        if ((quit_sig == 1) || (exit_sig == 1)) {
-            exit(EXIT_SUCCESS);
-        } else if (byte_nb < 0) {
-            MSG("WARNING: recvfrom returned an error\n");
-        } else if ((byte_nb < 12) || (databuf[0] != PROTOCOL_VERSION) || (databuf[3] != PKT_PULL_DATA)) {
-            MSG("INFO: packet received, not PULL_DATA request\n");
+	/* exit loop on user signals */
+	if ((quit_sig == 1) || (exit_sig == 1))
+		break;
+
+        if (byte_nb < 0) {
+            MSG("WARNING: recvfrom returned %s \n", strerror(errno));
+            continue;
+        }
+
+        /* display info about the sender */
+        i = getnameinfo((struct sockaddr *)&dist_addr, addr_len, host_name, sizeof host_name, port_name, sizeof port_name, NI_NUMERICHOST);
+        if (i == -1) {
+            MSG("WARNING: getnameinfo returned %s \n", gai_strerror(i));
+            continue;
+        }
+        printf(" -> PKT IN: host %s (port %s), %i bytes", host_name, port_name, byte_nb);
+
+        /* check and parse the payload */
+        if (byte_nb < 12) { /* not enough bytes for packet from gateway */
+            printf(" (too short for GW <-> MAC protocol)\n");
+            continue;
+        }
+        /* don't touch the token in position 1-2, it will be sent back "as is" for acknowledgement */
+        if (databuf[0] != PROTOCOL_VERSION) { /* check protocol version number */
+            printf(", invalid version %u\n", databuf[0]);
+            continue;
+        }
+
+		/* retrieve gateway MAC from the request */
+        raw_mac_h = *((uint32_t *)(databuf+4));
+        raw_mac_l = *((uint32_t *)(databuf+8));
+        gw_mac = ((uint64_t)ntohl(raw_mac_h) << 32) + (uint64_t)ntohl(raw_mac_l);
+
+        /* interpret gateway command */
+        switch (databuf[3]) {
+            case PKT_PUSH_DATA:
+                printf(", PUSH_DATA from gateway 0x%08X%08X\n", (uint32_t)(gw_mac >> 32), (uint32_t)(gw_mac & 0xFFFFFFFF));
+                ack_command = PKT_PUSH_ACK;
+                printf("<-  pkt out, PUSH_ACK for host %s (port %s)", host_name, port_name);
+                break;
+            case PKT_PULL_DATA:
+                printf(", PULL_DATA from gateway 0x%08X%08X\n", (uint32_t)(gw_mac >> 32), (uint32_t)(gw_mac & 0xFFFFFFFF));
+                ack_command = PKT_PULL_ACK;
+                printf("<-  pkt out, PULL_ACK for host %s (port %s)", host_name, port_name);
+                bok_push_data = true;
+                break;
+            case PKT_TX_ACK:
+		databuf[byte_nb] = 0;
+                printf("\n    TX_ACK received: '%s'\n", &databuf[12]);
+                continue;
+            default:
+                printf(", unexpected command %u\n", databuf[3]);
+                continue;
+        }
+
+        /* add some artificial latency */
+        //usleep(30000); /* 30 ms */
+
+        /* send acknowledge and check return value */
+        databuf[3] = ack_command;
+        byte_nb = sendto(sock, (void*)databuf, 4, 0, (struct sockaddr *)&dist_addr, addr_len);
+        if (byte_nb == -1) {
+            printf(", send error:%s\n", strerror(errno));
         } else {
-            break; /* success! */
+            printf(", %s sent %i bytes sent\n", ack_command == PKT_PUSH_ACK ? "PUSH_ACK" : "PULL_ACK", byte_nb);
         }
-    }
+        
+        if(databuf[3] == PKT_PULL_DATA || !bok_push_data)
+		continue;
 
-    /* retrieve gateway MAC from the request */
-    raw_mac_h = *((uint32_t *)(databuf+4));
-    raw_mac_l = *((uint32_t *)(databuf+8));
-    gw_mac = ((uint64_t)ntohl(raw_mac_h) << 32) + (uint64_t)ntohl(raw_mac_l);
+	bok_push_data = false;
 
-    /* display info about the sender */
-    i = getnameinfo((struct sockaddr *)&dist_addr, addr_len, host_name, sizeof host_name, port_name, sizeof port_name, NI_NUMERICHOST);
-    if (i == -1) {
-        MSG("ERROR: getnameinfo returned %s \n", gai_strerror(i));
-        exit(EXIT_FAILURE);
-    }
-    MSG("INFO: PULL_DATA request received from gateway 0x%08X%08X (host %s, port %s)\n", (uint32_t)(gw_mac >> 32), (uint32_t)(gw_mac & 0xFFFFFFFF), host_name, port_name);
+// vitor begin
+	JSON_Value *root_value_pd, *value_tmp;
+	JSON_Object *root_obj_pd, *obj_array;
+	JSON_Array *array_pd_rxpk;
+	uint32_t tmst_rx = 0,
+		 delay_dw2 = 6000000;
+	size_t icount;
 
-    /* PKT_PULL_RESP datagrams header */
-    databuf[0] = PROTOCOL_VERSION;
-    databuf[1] = 0; /* no token */
-    databuf[2] = 0; /* no token */
-    databuf[3] = PKT_PULL_RESP;
-    buff_index = 4;
+	root_value_pd = json_parse_string((char *)&databuf[12]);
+	root_obj_pd = json_value_get_object(root_value_pd);
+	array_pd_rxpk = json_object_get_array  (root_obj_pd, "rxpk");
+	icount = json_array_get_count(array_pd_rxpk);
+	for(size_t i=0; i<icount; ++i)
+	{
+		obj_array = json_array_get_object (array_pd_rxpk, i);
+		value_tmp = json_object_get_value(obj_array, "tmst");
+		tmst_rx = ((uint32_t)json_value_get_number(value_tmp));
+		json_object_clear(obj_array);
+	}
+	json_array_clear(array_pd_rxpk);
+	json_object_clear(root_obj_pd);
+	json_value_free(root_value_pd);
+	
+	if(tmst_rx == 0)
+		continue;
 
-    /* start of JSON structure */
-    memcpy((void *)(databuf + buff_index), (void *)"{\"txpk\":{\"imme\":true", 20);
-    buff_index += 20;
+	/* PKT_PULL_RESP datagrams header */
+	databuf[0] = PROTOCOL_VERSION;
+	databuf[1] = 0x00; /* no token */
+	databuf[2] = 0x00; /* no token */
+	databuf[3] = PKT_PULL_RESP;
+	buff_index = 4;
 
-    /* TX frequency */
-    i = snprintf((char *)(databuf + buff_index), 20, ",\"freq\":%.6f", f_target);
-    if ((i>=0) && (i < 20)) {
-        buff_index += i;
-    } else {
-        MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
-        exit(EXIT_FAILURE);
-    }
+	/* start of JSON structure */
+	memcpy((void *)(databuf + buff_index), (void *)"{\"txpk\":{\"imme\":false", 21);
+	buff_index += 21;
 
-    /* RF channel */
-    memcpy((void *)(databuf + buff_index), (void *)",\"rfch\":0", 9);
-    buff_index += 9;
+	/* tmst */
+	i = snprintf((char *)(databuf + buff_index), 20, ",\"tmst\":%u", tmst_rx + delay_dw2); // ver qual a formatacao no printf
+	if ((i>=0) && (i < 20)) {
+		buff_index += i;
+	} else {
+		MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
+		exit(EXIT_FAILURE);
+	}
 
-    /* TX power */
-    i = snprintf((char *)(databuf + buff_index), 12, ",\"powe\":%i", pow);
-    if ((i>=0) && (i < 12)) {
-        buff_index += i;
-    } else {
-        MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
-        exit(EXIT_FAILURE);
-    }
+// vitor end
 
-    /* modulation type and parameters */
-    if (strcmp(mod, "FSK") == 0) {
-        i = snprintf((char *)(databuf + buff_index), 50, ",\"modu\":\"FSK\",\"datr\":%u,\"fdev\":%u", (unsigned int)(br_kbps*1e3), (unsigned int)(fdev_khz*1e3));
-        if ((i>=0) && (i < 50)) {
-            buff_index += i;
-        } else {
-            MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        i = snprintf((char *)(databuf + buff_index), 50, ",\"modu\":\"LORA\",\"datr\":\"SF%iBW%i\",\"codr\":\"4/6\"", sf, bw);
-        if ((i>=0) && (i < 50)) {
-            buff_index += i;
-        } else {
-            MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
-            exit(EXIT_FAILURE);
-        }
-    }
+	/* TX frequency */
 
-    /* signal polarity */
-    if (invert) {
-        memcpy((void *)(databuf + buff_index), (void *)",\"ipol\":true", 12);
-        buff_index += 12;
-    } else {
-        memcpy((void *)(databuf + buff_index), (void *)",\"ipol\":false", 13);
-        buff_index += 13;
-    }
+	i = snprintf((char *)(databuf + buff_index), 20, ",\"freq\":%.6f", f_target);
+	if ((i>=0) && (i < 20)) {
+		buff_index += i;
+	} else {
+		MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
+		exit(EXIT_FAILURE);
+	}
 
-    /* Preamble size */
-    if (strcmp(mod, "LORA") == 0) {
-        memcpy((void *)(databuf + buff_index), (void *)",\"prea\":8", 9);
-        buff_index += 9;
-    }
+	/* RF channel */
+	memcpy((void *)(databuf + buff_index), (void *)",\"rfch\":0", 9);
+	buff_index += 9;
 
-    /* payload size */
-    i = snprintf((char *)(databuf + buff_index), 12, ",\"size\":%i", payload_size);
-    if ((i>=0) && (i < 12)) {
-        buff_index += i;
-    } else {
-        MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
-        exit(EXIT_FAILURE);
-    }
+	/* TX power */
+	i = snprintf((char *)(databuf + buff_index), 12, ",\"powe\":%i", pow);
+	if ((i>=0) && (i < 12)) {
+		buff_index += i;
+	} else {
+		MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
+		exit(EXIT_FAILURE);
+	}
 
-    /* payload JSON object */
-    memcpy((void *)(databuf + buff_index), (void *)",\"data\":\"", 9);
-    buff_index += 9;
-    payload_index = buff_index; /* keep the value where the payload content start */
+	/* modulation type and parameters */
+	if (strcmp(mod, "FSK") == 0) {
+		i = snprintf((char *)(databuf + buff_index), 50, ",\"modu\":\"FSK\",\"datr\":%u,\"fdev\":%u", (unsigned int)(br_kbps*1e3), (unsigned int)(fdev_khz*1e3));
+		if ((i>=0) && (i < 50)) {
+			buff_index += i;
+		} else {
+			MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
+			exit(EXIT_FAILURE);
+		}
+	} else {
+//      	i = snprintf((char *)(databuf + buff_index), 50, ",\"modu\":\"LORA\",\"datr\":\"SF%iBW%i\",\"codr\":\"4/6\"", sf, bw);
+		i = snprintf((char *)(databuf + buff_index), 50, ",\"modu\":\"LORA\",\"datr\":\"SF%iBW%i\",\"codr\":\"4/5\"", sf, bw);	// guilherme single-line
+		if ((i>=0) && (i < 50)) {
+			buff_index += i;
+		} else {
+			MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
+			exit(EXIT_FAILURE);
+		}
+	}
 
-    /* payload place-holder & end of JSON structure */
-    x = bin_to_b64(payload_bin, payload_size, payload_b64, sizeof payload_b64); /* dummy conversion to get exact size */
-    if (x >= 0) {
-        buff_index += x;
-    } else {
-        MSG("ERROR: bin_to_b64 failed line %u\n", (__LINE__ - 4));
-        exit(EXIT_FAILURE);
-    }
+	/* signal polarity */
+	if (invert) {
+		memcpy((void *)(databuf + buff_index), (void *)",\"ipol\":true", 12);
+		buff_index += 12;
+	} else {
+		memcpy((void *)(databuf + buff_index), (void *)",\"ipol\":false", 13);
+		buff_index += 13;
+	}
 
-    /* Close JSON structure */
-    memcpy((void *)(databuf + buff_index), (void *)"\"}}", 3);
-    buff_index += 3; /* ends up being the total length of payload */
+	/* Preamble size */
+	if (strcmp(mod, "LORA") == 0) {
+		memcpy((void *)(databuf + buff_index), (void *)",\"prea\":8", 9);
+		buff_index += 9;
+	}
 
-    /* main loop */
-    for (i = 0; i < repeat; ++i) {
-        /* fill payload */
-        payload_bin[0] = id;
-        payload_bin[1] = (uint8_t)(i >> 24);
-        payload_bin[2] = (uint8_t)(i >> 16);
-        payload_bin[3] = (uint8_t)(i >> 8);
-        payload_bin[4] = (uint8_t)(i);
-        payload_bin[5] = 'P';
-        payload_bin[6] = 'E';
-        payload_bin[7] = 'R';
-        payload_bin[8] = (uint8_t)(payload_bin[0] + payload_bin[1] + payload_bin[2] + payload_bin[3] + payload_bin[4] + payload_bin[5] + payload_bin[6] + payload_bin[7]);
-        for (j = 0; j < (payload_size - 9); j++) {
-            payload_bin[9+j] = j;
-        }
+	/* payload size */
+	i = snprintf((char *)(databuf + buff_index), 12, ",\"size\":%i", payload_size);
+	if ((i>=0) && (i < 12)) {
+		buff_index += i;
+	} else {
+		MSG("ERROR: snprintf failed line %u\n", (__LINE__ - 4));
+		exit(EXIT_FAILURE);
+	}
 
+	/* payload JSON object */
+	memcpy((void *)(databuf + buff_index), (void *)",\"data\":\"", 9);
+	buff_index += 9;
+	payload_index = buff_index; /* keep the value where the payload content start */
+
+	/* fill payload */
+	payload_bin[0] = 0x20;
+	payload_bin[1] = 0xd3;
+	payload_bin[2] = 0xc1;
+	payload_bin[3] = 0x11;
+	payload_bin[4] = 0xf5;
+	payload_bin[5] = 0xf7;
+	payload_bin[6] = 0xc0;
+	payload_bin[7] = 0x5f;
+	payload_bin[8] = 0x2d;
+	payload_bin[9] = 0x3e;
+	payload_bin[10] = 0x4d;
+	payload_bin[11] = 0x66;
+	payload_bin[12] = 0x9c;
+	payload_bin[13] = 0x08;
+	payload_bin[14] = 0xaf;
+	payload_bin[15] = 0x7e;
+	payload_bin[16] = 0x3b;
+	payload_bin[17] = 0xec;
+	payload_bin[18] = 0x91;
+	payload_bin[19] = 0x27;
+	payload_bin[20] = 0xa9;
+	payload_bin[21] = 0xdc;
+	payload_bin[22] = 0xc0;
+	payload_bin[23] = 0xd7;
+	payload_bin[24] = 0xcd;
+	payload_bin[25] = 0xe1;
+	payload_bin[26] = 0xa2;
+	payload_bin[27] = 0xde;
+	payload_bin[28] = 0x07;
+	payload_bin[29] = 0xe0;
+	payload_bin[30] = 0xec;
+	payload_bin[31] = 0x60;
+	payload_bin[32] = 0x38;
+		
 #if 0
-        for (j = 0; j < payload_size; j++ ) {
-            printf("0x%02X ", payload_bin[j]);
-        }
-        printf("\n");
+	for (j = 0; j < payload_size; j++ ) {
+		printf("0x%02X ", payload_bin[j]);
+	}
+	printf("\n");
 #endif
 
-        /* encode the payload in Base64 */
-        x = bin_to_b64(payload_bin, payload_size, payload_b64, sizeof payload_b64);
-        if (x >= 0) {
-            memcpy((void *)(databuf + payload_index), (void *)payload_b64, x);
-        } else {
-            MSG("ERROR: bin_to_b64 failed line %u\n", (__LINE__ - 4));
-            exit(EXIT_FAILURE);
-        }
+	/* payload place-holder & end of JSON structure */
+	x = bin_to_b64(payload_bin, payload_size, payload_b64, sizeof payload_b64);
+	if (x >= 0) {
+		memcpy((void *)(databuf + payload_index), (void *)payload_b64, x);
+		buff_index += x;
+	} else {
+		MSG("ERROR: bin_to_b64 failed line %u\n", (__LINE__ - 4));
+		exit(EXIT_FAILURE);
+	}
 
-        /* send packet to the gateway */
-        byte_nb = sendto(sock, (void *)databuf, buff_index, 0, (struct sockaddr *)&dist_addr, addr_len);
-        if (byte_nb == -1) {
-            MSG("WARNING: sendto returned an error %s\n", strerror(errno));
-        } else {
-            MSG("INFO: packet #%i sent successfully\n", i);
-        }
+	/* Close JSON structure */
+	memcpy((void *)(databuf + buff_index), (void *)"\"}}", 3);
+	buff_index += 3; /* ends up being the total length of payload */
 
-        /* wait inter-packet delay */
-        usleep(delay * 1000);
+	/* main loop */
+	for (i = 0; i < repeat; ++i) {
+		/* add some artificial latency */
+		//usleep(30000); /* 30 ms */
 
-        /* exit loop on user signals */
-        if ((quit_sig == 1) || (exit_sig == 1)) {
-            break;
-        }
+		/* send packet to the gateway */
+		byte_nb = sendto(sock, (void *)databuf, buff_index, 0, (struct sockaddr *)&dist_addr, addr_len);
+		if (byte_nb == -1) {
+			MSG("WARNING: sendto returned an error %s\n", strerror(errno));
+		} else {
+			MSG("INFO: packet #%i sent successfully\n", i);
+		}
+
+		/* wait inter-packet delay */
+		usleep(delay * 1000);
+
+		/* exit loop on user signals */
+		if ((quit_sig == 1) || (exit_sig == 1)) {
+			break;
+		}
+	}
     }
-
     exit(EXIT_SUCCESS);
 }
 

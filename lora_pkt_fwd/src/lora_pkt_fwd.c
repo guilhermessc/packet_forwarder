@@ -820,6 +820,8 @@ static int send_tx_ack(uint8_t token_h, uint8_t token_l, enum jit_error_e error)
     uint8_t buff_ack[64]; /* buffer to give feedback to server */
     int buff_index;
 
+	printf("\n##### @send_tx_ack #####\n");
+
     /* reset buffer */
     memset(&buff_ack, 0, sizeof buff_ack);
 
@@ -834,6 +836,7 @@ static int send_tx_ack(uint8_t token_h, uint8_t token_l, enum jit_error_e error)
 
     /* Put no JSON string if there is nothing to report */
     if (error != JIT_ERROR_OK) {
+		printf("\n##### JIT_ERROR #####\n");
         /* start of JSON structure */
         memcpy((void *)(buff_ack + buff_index), (void *)"{\"txpk_ack\":{", 13);
         buff_index += 13;
@@ -894,7 +897,9 @@ static int send_tx_ack(uint8_t token_h, uint8_t token_l, enum jit_error_e error)
         /* end of JSON structure */
         memcpy((void *)(buff_ack + buff_index), (void *)"}}", 2);
         buff_index += 2;
-    }
+    }else{
+		printf("\n##### NO JIT_ERROR #####\n");
+	}
 
     buff_ack[buff_index] = 0; /* add string terminator, for safety */
 
@@ -2466,8 +2471,14 @@ void thread_jit(void) {
                     /* send packet to concentrator */
                     pthread_mutex_lock(&mx_concent); /* may have to wait for a fetch to finish */
                     result = lgw_send(pkt);
+                    MSG("------------ SENDING PKT TO CONCENTRATOR ----------\n");
+					for(int myidx=0; myidx < pkt.size; myidx++){
+						printf("%x", pkt.payload[myidx]);
+					}
+					printf("\n");
+                    MSG("===================================================\n");
                     pthread_mutex_unlock(&mx_concent); /* free concentrator ASAP */
-                    if (result == LGW_HAL_ERROR) {
+                    if (result != LGW_HAL_SUCCESS) {		// guilherme modified
                         pthread_mutex_lock(&mx_meas_dw);
                         meas_nb_tx_fail += 1;
                         pthread_mutex_unlock(&mx_meas_dw);
