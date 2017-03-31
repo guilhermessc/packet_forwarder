@@ -39,8 +39,8 @@ $(OBJDIR)/%.o: src/%.c $(INCLUDES) | $(OBJDIR)
 
 ### Main program assembly
 
-$(APP_NAME): $(OBJDIR)/$(APP_NAME).o  $(OBJDIR)/base64.o $(OBJDIR)/parson.o
-	$(CC) $< $(OBJDIR)/base64.o $(OBJDIR)/parson.o -o $@
+$(APP_NAME): $(OBJDIR)/$(APP_NAME).o $(OBJDIR)/aes.o $(OBJDIR)/cmac.o $(OBJDIR)/base64.o $(OBJDIR)/parson.o
+	$(CC) $< $(OBJDIR)/aes.o $(OBJDIR)/cmac.o $(OBJDIR)/base64.o $(OBJDIR)/parson.o -o $@ 
 
 ### EOF
 

@@ -41,8 +41,7 @@ Maintainer: Sylvain Miermont
 
 #include "parson.h"
 #include "base64.h"
-#include "aes.h"
-#include "cmac.h"
+
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE MACROS ------------------------------------------------------- */
 
@@ -94,12 +93,12 @@ static void sig_handler(int sigio) {
 }
 
 /* parser devices.json - registrar thing no gw */
-void save_thing(const char *file, uint8_t *payload_rx) {
+void save_thing(const char *file) {
 
 	JSON_Value *root_value_keys, *value_new;
 	JSON_Object *root_obj_keys, *obj_new;
 	JSON_Array *array_keys_key;
-	printf("DEBUG 3");
+
 	root_value_keys = json_parse_file(file);
 	root_obj_keys = json_value_get_object(root_value_keys);
 	array_keys_key = json_object_get_array(root_obj_keys, "keys");
@@ -108,13 +107,11 @@ void save_thing(const char *file, uint8_t *payload_rx) {
 	value_new = json_value_init_object();
 	obj_new = json_value_get_object(value_new);
 	json_object_set_number(obj_new, "devaddr", count);
-	json_object_set_string(obj_new, "payload", ((char *)payload_rx));
 	count++;
 	//adicionando no array o objeto
 	json_array_append_value(array_keys_key, value_new);
 
 	//colocando no arquivo
-	printf("ESCREVENDO NO ARQUIVO JSON!!!!!!!!!!!!!!!!");
 	json_serialize_to_file_pretty(root_value_keys, file); //mudar para sem pretty depois
 
 	json_object_clear(obj_new);
@@ -124,43 +121,26 @@ void save_thing(const char *file, uint8_t *payload_rx) {
 	
 }
 
-void parser_data(uint8_t *databuf, uint8_t *payload_rx, uint32_t *tmst_rx, size_t *size, char *test) {
+void parser_data(uint8_t *databuf, uint32_t *tmst_rx) {
 	
 	JSON_Value *root_value_pd, *value_tmp;
 	JSON_Object *root_obj_pd, *obj_array;
 	JSON_Array *array_pd_rxpk;
 	size_t icount;
-	char payload_rx_b64[341];
+	
 	
 	root_value_pd = json_parse_string((char *)&databuf[12]);
 	root_obj_pd = json_value_get_object(root_value_pd);
 	array_pd_rxpk = json_object_get_array  (root_obj_pd, "rxpk");
-		printf("DEBUG 1");
+	
 	icount = json_array_get_count(array_pd_rxpk);
 	for(size_t i=0; i<icount; ++i) {
 		obj_array = json_array_get_object (array_pd_rxpk, i);
-		
 		value_tmp = json_object_get_value(obj_array, "tmst");
 		*tmst_rx = ((uint32_t)json_value_get_number(value_tmp));
-		
-		value_tmp = json_object_get_value(obj_array, "size");
-		*size = ((size_t)json_value_get_number(value_tmp));
-		printf("SIZE: %u\n", *size);
-		
-		value_tmp = json_object_get_value(obj_array, "data");
-		memcpy(payload_rx_b64, json_value_get_string (value_tmp), strlen(json_value_get_string (value_tmp)));
-		printf("payload64\n");
-		for(int v; v<23; v++){
-			printf("%c", payload_rx_b64[v]);
-		}
-		printf("   pl FIM\n");
-		
-		
-		b64_to_bin(payload_rx_b64, *size, payload_rx, 255);
-		
 		json_object_clear(obj_array);
 	}
-	printf("DEBUG 2");
+
 	json_array_clear(array_pd_rxpk);
 	json_object_clear(root_obj_pd);
 	json_value_free(root_value_pd);
@@ -173,15 +153,14 @@ void parser_data(uint8_t *databuf, uint8_t *payload_rx, uint32_t *tmst_rx, size_
 int main()
 {
     int i, x;
-    const char file[] = "devices.json";
+    const char file[] = "util_tx_test/devices.json";
     
     /* network and aplication keys and join parameters */
- 
+/*  
 	const uint8_t netID[3] 	= {0x30, 0x01, 0x01};
 	const uint8_t appKey[16]= {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 
 									0xCF, 0x4F, 0x3C}; 
-/*  
-	uint8_t devAddr[4];
+    uint8_t devAddr[4];
     uint8_t appNonce[3];
     
     uint8_t dlSettings 	= 0x00;
@@ -190,32 +169,22 @@ int main()
     /* application parameters */
     char mod[64] 		= "LORA"; 	/* LoRa modulation by default */
     float f_target 		= 923.3; 	/* target frequency */
-    int sf 				= 10; 		/* SF12 by default */
-    int bw 				= 125; 		/* 500kHz bandwidth by default */
+    int sf 				= 12; 		/* SF12 by default */
+    int bw 				= 500; 		/* 500kHz bandwidth by default */
     int pow 			= 14; 		/* 14 dBm by default */
     int delay 			= 1; 		/* 1 milisecond between packets by default */
     int repeat 			= 1; 		/* sweep only once by default */
     bool invert 		= true;
     float br_kbps 		= 50; 		/* 50 kbps by default */
     uint8_t fdev_khz 	= 25; 		/* 25 khz by default */
-    
-    /* rx packet variables */
 	uint32_t tmst_rx 	= 0;		/* rxpk timestamp */
-	uint32_t delay_dw2 = 6000000;  /* delay for the second window */ 
-	size_t size_rx		= 0;		/* rx payload size */
-	uint8_t payl_rx[255];
+	uint32_t delay_dw2 = 6000000;  /* delay for the second window */
 
     /* packet payload variables */
     int payload_size 	= 17;
     uint8_t payload_bin[255];
     char payload_b64[341];
     int payload_index;
-    uint8_t payload_bin_dec[255]; 	/* crypto payload */
-    
-    /* AES and CMAC variables */
-    static aes_context AesContext;
-	static AES_CMAC_CTX AesCmacCtx[1];
-	static uint8_t Mic[16];
 
     /* server socket creation */
     int sock; 						/* socket file descriptor */
@@ -369,14 +338,14 @@ int main()
 	bok_push_data = false;
 
 	//json parser
-	parser_data(databuf, payl_rx, &tmst_rx, &size_rx);
+	parser_data(databuf, &tmst_rx);
 
 	if(tmst_rx == 0)
 		continue;
-	printf("DEBUG 4");
+		
 	//save thing in json file
-	save_thing(file, payl_rx);
-	printf("DEBUG 5");
+	save_thing(file);
+
 	/* PKT_PULL_RESP datagrams header */
 	databuf[0] = PROTOCOL_VERSION;
 	databuf[1] = 0x00; /* no token */
@@ -484,29 +453,13 @@ int main()
 	payload_bin[10] = 0xcc;
 	payload_bin[11] = 0x00;
 	payload_bin[12] = 0x00;
-	
-	/* compute MIC */
-	AES_CMAC_Init( AesCmacCtx );
-    AES_CMAC_SetKey( AesCmacCtx, appKey );
-    AES_CMAC_Update( AesCmacCtx, payload_bin, 13 & 0xFF );
-    AES_CMAC_Final( Mic, AesCmacCtx );
-    
-    /* fill mic payload */
-    payload_bin[13] = Mic[0];
-    payload_bin[14] = Mic[1];
-    payload_bin[15] = Mic[2];
-    payload_bin[16] = Mic[3];
-	
-	
-	memset(AesContext.ksch, '\0', 240);
-	aes_set_key(appKey, 16, &AesContext);
-
-	aes_decrypt( (const uint8_t*) &payload_bin[1], &payload_bin_dec[1], &AesContext);
-	payload_bin_dec[0] = JOIN_ACCEPT;
+	payload_bin[13] = 0x11;
+	payload_bin[14] = 0x11;
+	payload_bin[15] = 0x11;
+	payload_bin[16] = 0x11;
 	
 	/* payload place-holder & end of JSON structure */
-	x = bin_to_b64(payload_bin_dec, payload_size, payload_b64, sizeof payload_b64);
-	//x = bin_to_b64(payload_bin, payload_size, payload_b64, sizeof payload_b64);
+	x = bin_to_b64(payload_bin, payload_size, payload_b64, sizeof payload_b64);
 	if (x >= 0) {
 		memcpy((void *)(databuf + payload_index), (void *)payload_b64, x);
 		buff_index += x;
