@@ -124,13 +124,13 @@ void save_thing(const char *file, uint8_t *payload_rx) {
 	
 }
 
-void parser_data(uint8_t *databuf, uint8_t *payload_rx, uint32_t *tmst_rx, size_t *size, char *test) {
+void parser_data(uint8_t *databuf, uint8_t *payload_rx, uint32_t *tmst_rx, size_t *size, int *rssi_rx) {
 	
 	JSON_Value *root_value_pd, *value_tmp;
 	JSON_Object *root_obj_pd, *obj_array;
 	JSON_Array *array_pd_rxpk;
 	size_t icount;
-	char payload_rx_b64[341];
+	char payload_rx_b64[341];				// documentar de onde veio esse valor (usar um define talvez)
 	
 	root_value_pd = json_parse_string((char *)&databuf[12]);
 	root_obj_pd = json_value_get_object(root_value_pd);
@@ -146,17 +146,13 @@ void parser_data(uint8_t *databuf, uint8_t *payload_rx, uint32_t *tmst_rx, size_
 		value_tmp = json_object_get_value(obj_array, "size");
 		*size = ((size_t)json_value_get_number(value_tmp));
 		printf("SIZE: %u\n", *size);
-		
+
 		value_tmp = json_object_get_value(obj_array, "data");
-		memcpy(payload_rx_b64, json_value_get_string (value_tmp), strlen(json_value_get_string (value_tmp)));
-		printf("payload64\n");
-		for(int v; v<23; v++){
-			printf("%c", payload_rx_b64[v]);
-		}
-		printf("   pl FIM\n");
-		
-		
+		strcpy(payload_rx_b64, json_value_get_string (value_tmp));
 		b64_to_bin(payload_rx_b64, *size, payload_rx, 255);
+		
+		value_tmp = json_object_get_value(obj_array, "rssi");
+		*rssi_rx = ((int)json_value_get_number(value_tmp));
 		
 		json_object_clear(obj_array);
 	}
@@ -204,6 +200,7 @@ int main()
 	uint32_t delay_dw2 = 6000000;  /* delay for the second window */ 
 	size_t size_rx		= 0;		/* rx payload size */
 	uint8_t payl_rx[255];
+	int rssi_rx;
 
     /* packet payload variables */
     int payload_size 	= 17;
@@ -369,7 +366,7 @@ int main()
 	bok_push_data = false;
 
 	//json parser
-	parser_data(databuf, payl_rx, &tmst_rx, &size_rx);
+	parser_data(databuf, payl_rx, &tmst_rx, &size_rx, &rssi_rx);
 
 	if(tmst_rx == 0)
 		continue;
