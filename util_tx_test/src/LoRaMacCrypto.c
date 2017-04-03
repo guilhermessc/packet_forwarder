@@ -113,7 +113,7 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     uint16_t ctr = 1;
 
     memset( AesContext.ksch, '\0', 240 );
-    aes_set_key( key, 16, &AesContext );
+    // aes_set_key( key, 16, &AesContext );
 
     aBlock[5] = dir;
 
@@ -131,7 +131,9 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
         ctr++;
-        aes_encrypt( aBlock, sBlock, &AesContext );
+        // aes_encrypt( aBlock, sBlock, &AesContext );
+        memcpy(sBlock, aBlock, 16);
+        encrypt(sBlock, 16, key, NULL);
         for( i = 0; i < 16; i++ )
         {
             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
@@ -143,7 +145,9 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     if( size > 0 )
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
-        aes_encrypt( aBlock, sBlock, &AesContext );
+        // aes_encrypt( aBlock, sBlock, &AesContext );
+        memcpy(sBlock, aBlock, 16);
+        encrypt(sBlock, 16, key, NULL);
         for( i = 0; i < size; i++ )
         {
             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
