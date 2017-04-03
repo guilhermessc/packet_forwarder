@@ -214,17 +214,21 @@ void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint1
     uint8_t *pDevNonce = ( uint8_t * )&devNonce;
     
     memset( AesContext.ksch, '\0', 240 );
-    aes_set_key( key, 16, &AesContext );
+    // aes_set_key( key, 16, &AesContext );
 
     memset( nonce, 0, sizeof( nonce ) );
     nonce[0] = 0x01;
     memcpy( nonce + 1, appNonce, 6 );
     memcpy( nonce + 7, pDevNonce, 2 );
-    aes_encrypt( nonce, nwkSKey, &AesContext );
+    // aes_encrypt( nonce, nwkSKey, &AesContext );
+    memcpy(nwkSKey, nonce, sizeof( nonce ) );
+    encrypt(nwkSKey, 16, key, NULL);
 
     memset( nonce, 0, sizeof( nonce ) );
     nonce[0] = 0x02;
     memcpy( nonce + 1, appNonce, 6 );
     memcpy( nonce + 7, pDevNonce, 2 );
-    aes_encrypt( nonce, appSKey, &AesContext );
+    // aes_encrypt( nonce, appSKey, &AesContext );
+    memcpy(appSKey, nonce, sizeof( nonce ) );
+    encrypt(appSKey, 16, key, NULL);
 }
