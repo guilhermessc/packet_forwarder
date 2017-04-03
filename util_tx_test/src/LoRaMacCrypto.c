@@ -69,9 +69,9 @@ static AES_CMAC_CTX AesCmacCtx[1];
 /*!
  * \brief Computes the LoRaMAC frame MIC field  
  *
- * \param [IN]  buffer          Data buffer
+ * \param [IN]  buffer          Data buffer (MHDR | FHDR | FPort | FRMPayload)
  * \param [IN]  size            Data buffer size
- * \param [IN]  key             AES key to be used
+ * \param [IN]  key             AES key to be used (NwkSKey according to the specs)
  * \param [IN]  address         Frame address
  * \param [IN]  dir             Frame direction [0: uplink, 1: downlink]
  * \param [IN]  sequenceCounter Frame sequence counter
@@ -142,6 +142,7 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
         bufferIndex += 16;
     }
 
+// o que acontece se size inicialmente for maior q 32? Isso é possivel? // guilherme
     if( size > 0 )
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
@@ -176,12 +177,17 @@ void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t 
 void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *decBuffer )
 {
     memset( AesContext.ksch, '\0', 240 );
-    aes_set_key( key, 16, &AesContext );
-    aes_encrypt( buffer, decBuffer, &AesContext );
+    // aes_set_key( key, 16, &AesContext );
+    // aes_encrypt( buffer, decBuffer, &AesContext );
+    memcpy(decBuffer, buffer, size);
+    encrypt(decBuffer, 16, key, NULL);
+        
+
     // Check if optional CFList is included
-    if( size >= 16 )
+    // if( size >= 16 )
+    if(size > 16)
     {
-        aes_encrypt( buffer + 16, decBuffer + 16, &AesContext );
+        encrypt(decBuffer + 16, size - 16, key, NULL);
     }
 }
 
