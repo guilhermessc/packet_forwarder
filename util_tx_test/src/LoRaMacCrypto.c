@@ -191,6 +191,23 @@ void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *ke
     }
 }
 
+void LoRaMacJoinEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *encBuffer )
+{
+    memset( AesContext.ksch, '\0', 240 );
+    // aes_set_key( key, 16, &AesContext );
+    // aes_encrypt( buffer, decBuffer, &AesContext );
+    memcpy(encBuffer, buffer, size);
+    decrypt(encBuffer, 16, key, NULL);
+        
+
+    // Check if optional CFList is included
+    // if( size >= 16 )
+    if(size > 16)
+    {
+        decrypt(encBuffer + 16, size - 16, key, NULL);
+    }
+}
+
 void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint16_t devNonce, uint8_t *nwkSKey, uint8_t *appSKey )
 {
     uint8_t nonce[16];
