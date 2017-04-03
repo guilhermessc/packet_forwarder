@@ -19,7 +19,7 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jä
 */
 #include <stdlib.h>
 #include <stdint.h>
-#include "utilities.h"
+#include <string.h>
 
 #include "aes.h"
 #include "cmac.h"
@@ -111,7 +111,7 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     uint8_t bufferIndex = 0;
     uint16_t ctr = 1;
 
-    memset1( AesContext.ksch, '\0', 240 );
+    memset( AesContext.ksch, '\0', 240 );
     aes_set_key( key, 16, &AesContext );
 
     aBlock[5] = dir;
@@ -170,7 +170,7 @@ void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t 
 
 void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *decBuffer )
 {
-    memset1( AesContext.ksch, '\0', 240 );
+    memset( AesContext.ksch, '\0', 240 );
     aes_set_key( key, 16, &AesContext );
     aes_encrypt( buffer, decBuffer, &AesContext );
     // Check if optional CFList is included
@@ -185,18 +185,18 @@ void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint1
     uint8_t nonce[16];
     uint8_t *pDevNonce = ( uint8_t * )&devNonce;
     
-    memset1( AesContext.ksch, '\0', 240 );
+    memset( AesContext.ksch, '\0', 240 );
     aes_set_key( key, 16, &AesContext );
 
-    memset1( nonce, 0, sizeof( nonce ) );
+    memset( nonce, 0, sizeof( nonce ) );
     nonce[0] = 0x01;
-    memcpy1( nonce + 1, appNonce, 6 );
-    memcpy1( nonce + 7, pDevNonce, 2 );
+    memcpy( nonce + 1, appNonce, 6 );
+    memcpy( nonce + 7, pDevNonce, 2 );
     aes_encrypt( nonce, nwkSKey, &AesContext );
 
-    memset1( nonce, 0, sizeof( nonce ) );
+    memset( nonce, 0, sizeof( nonce ) );
     nonce[0] = 0x02;
-    memcpy1( nonce + 1, appNonce, 6 );
-    memcpy1( nonce + 7, pDevNonce, 2 );
+    memcpy( nonce + 1, appNonce, 6 );
+    memcpy( nonce + 7, pDevNonce, 2 );
     aes_encrypt( nonce, appSKey, &AesContext );
 }
