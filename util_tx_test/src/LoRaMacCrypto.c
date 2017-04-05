@@ -22,8 +22,8 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jä
 #include <string.h>
 
 #include "security.h"
-#include "aes.h"
-#include "cmac.h"
+//#include "aes.h"
+//#include "cmac.h"
 
 #include "LoRaMacCrypto.h"
 
