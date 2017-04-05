@@ -69,7 +69,7 @@ static AES_CMAC_CTX AesCmacCtx[1];
 /*!
  * \brief Computes the LoRaMAC frame MIC field  
  *
- * \param [IN]  buffer          Data buffer (MHDR | FHDR | FPort | FRMPayload)
+ * \param [IN]  buffer          Data buffer (MHDR | MACPayload(encrypted))
  * \param [IN]  size            Data buffer size
  * \param [IN]  key             AES key to be used (NwkSKey according to the specs)
  * \param [IN]  address         Frame address
@@ -79,6 +79,8 @@ static AES_CMAC_CTX AesCmacCtx[1];
  */
 void LoRaMacComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint32_t address, uint8_t dir, uint32_t sequenceCounter, uint32_t *mic )
 {
+    char *cmac_buffer;
+
     MicBlockB0[5] = dir;
     
     MicBlockB0[6] = ( address ) & 0xFF;
@@ -93,16 +95,24 @@ void LoRaMacComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key
 
     MicBlockB0[15] = size & 0xFF;
 
-    AES_CMAC_Init( AesCmacCtx );
+    // AES_CMAC_Init( AesCmacCtx );
 
-    AES_CMAC_SetKey( AesCmacCtx, key );
+    // AES_CMAC_SetKey( AesCmacCtx, key );
 
-    AES_CMAC_Update( AesCmacCtx, MicBlockB0, LORAMAC_MIC_BLOCK_B0_SIZE );
+    // AES_CMAC_Update( AesCmacCtx, MicBlockB0, LORAMAC_MIC_BLOCK_B0_SIZE );
     
-    AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
+    // AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
     
-    AES_CMAC_Final( Mic, AesCmacCtx );
-    
+    // AES_CMAC_Final( Mic, AesCmacCtx );
+
+    cmac_buffer = (*uint8_t) malloc ((LORAMAC_MIC_BLOCK_B0_SIZE + size) * sizeof(uint8_t));
+    memcpy(cmac_buffer, MicBlockB0, LORAMAC_MIC_BLOCK_B0_SIZE);
+    memcpy(cmac_buffer + LORAMAC_MIC_BLOCK_B0_SIZE, buffer, size);
+
+    lora_cmac(cmac_buffer, LORAMAC_MIC_BLOCK_B0_SIZE + size, Mic, 16, key, NULL);
+
+    free(cmac_buffer);
+
     *mic = ( uint32_t )( ( uint32_t )Mic[3] << 24 | ( uint32_t )Mic[2] << 16 | ( uint32_t )Mic[1] << 8 | ( uint32_t )Mic[0] );
 }
 
@@ -161,15 +171,25 @@ void LoRaMacPayloadDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     LoRaMacPayloadEncrypt( buffer, size, key, address, dir, sequenceCounter, decBuffer );
 }
 
+/*!
+ * \brief Computes the LoRaMAC Join-Request/Response MIC field
+ *
+ * \param [IN]  buffer          Data buffer (MHDR | Join-Request) or (MHDR | Join-Response (encrypted))
+ * \param [IN]  size            Data buffer size
+ * \param [IN]  key             AES key to be used (AppKey according to the specs)
+ * \param [OUT] mic Computed MIC field
+ */
 void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint32_t *mic )
 {
-    AES_CMAC_Init( AesCmacCtx );
+    // AES_CMAC_Init( AesCmacCtx );
 
-    AES_CMAC_SetKey( AesCmacCtx, key );
+    // AES_CMAC_SetKey( AesCmacCtx, key );
 
-    AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
+    // AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
 
-    AES_CMAC_Final( Mic, AesCmacCtx );
+    // AES_CMAC_Final( Mic, AesCmacCtx );
+
+    lora_cmac(buffer, size, Mic, 16, key, NULL);
 
     *mic = ( uint32_t )( ( uint32_t )Mic[3] << 24 | ( uint32_t )Mic[2] << 16 | ( uint32_t )Mic[1] << 8 | ( uint32_t )Mic[0] );
 }
