@@ -1,0 +1,11 @@
+TODO:
+
+	- Modify the makefile to add the dependencies
+	- Create an input file to test the code
+	- Test it!
+	- Compare the output files
+	- Report the results
+
+DONE:
+
+	- Create a source code to call the modified functions
