@@ -21,11 +21,11 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jä
 #include <stdint.h>
 #include <string.h>
 
-#include "security.h"
+#include "../inc/security.h"
 //#include "aes.h"
 //#include "cmac.h"
 
-#include "LoRaMacCrypto.h"
+#include "../inc/LoRaMacCrypto.h"
 
 /*!
  * CMAC/AES Message Integrity Code (MIC) Block B0 size
@@ -59,12 +59,12 @@ static uint8_t sBlock[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 /*!
  * AES computation context variable
  */
-static aes_context AesContext;
+// static aes_context AesContext;
 
 /*!
  * CMAC computation context variable
  */
-static AES_CMAC_CTX AesCmacCtx[1];
+// static AES_CMAC_CTX AesCmacCtx[1];
 
 /*!
  * \brief Computes the LoRaMAC frame MIC field  
@@ -105,7 +105,7 @@ void LoRaMacComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key
     
     // AES_CMAC_Final( Mic, AesCmacCtx );
 
-    cmac_buffer = (*uint8_t) malloc ((LORAMAC_MIC_BLOCK_B0_SIZE + size) * sizeof(uint8_t));
+    cmac_buffer = (uint8_t*) malloc ((LORAMAC_MIC_BLOCK_B0_SIZE + size) * sizeof(uint8_t));
     memcpy(cmac_buffer, MicBlockB0, LORAMAC_MIC_BLOCK_B0_SIZE);
     memcpy(cmac_buffer + LORAMAC_MIC_BLOCK_B0_SIZE, buffer, size);
 
@@ -122,7 +122,7 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     uint8_t bufferIndex = 0;
     uint16_t ctr = 1;
 
-    memset( AesContext.ksch, '\0', 240 );
+    // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
 
     aBlock[5] = dir;
@@ -196,7 +196,7 @@ void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t 
 
 void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *decBuffer )
 {
-    memset( AesContext.ksch, '\0', 240 );
+    // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
     // aes_encrypt( buffer, decBuffer, &AesContext );
     memcpy(decBuffer, buffer, size);
@@ -213,7 +213,7 @@ void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *ke
 
 void LoRaMacJoinEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *encBuffer )
 {
-    memset( AesContext.ksch, '\0', 240 );
+    // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
     // aes_encrypt( buffer, decBuffer, &AesContext );
     memcpy(encBuffer, buffer, size);
@@ -233,7 +233,7 @@ void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint1
     uint8_t nonce[16];
     uint8_t *pDevNonce = ( uint8_t * )&devNonce;
     
-    memset( AesContext.ksch, '\0', 240 );
+    // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
 
     memset( nonce, 0, sizeof( nonce ) );
