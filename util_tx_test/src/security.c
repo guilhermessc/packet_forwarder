@@ -10,8 +10,8 @@
 #include <openssl/cmac.h>
 #include "../inc/ecc.h"
 #include "../inc/aes/aes.h"
-#include "include/linux_log.h"
-#include "security.h"
+//#include "include/linux_log.h"
+#include "../inc/security.h"
 #include "sec_errors.h"
 
 #include <stdio.h>
