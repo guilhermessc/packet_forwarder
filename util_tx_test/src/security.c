@@ -10,7 +10,7 @@
 #include <openssl/cmac.h>
 #include "../inc/ecc.h"
 #include "../inc/aes/aes.h"
-//#include "include/linux_log.h"
+#include "../inc/linux_log.h"
 #include "../inc/security.h"
 #include "../inc/sec_errors.h"
 
