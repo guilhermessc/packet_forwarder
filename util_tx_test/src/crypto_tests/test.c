@@ -1,13 +1,14 @@
 #include <stdio.h>
+#include <stdint.h>
 
-#include <"LoRaMacCrypto.h">
+#include "../../inc/LoRaMacCrypto.h"
 
-#define com_ADV_HELP		0
-#define com_ComputeMic		1
-#define com_PayloadEncrypt	2
-#define com_PayloadDecrypt	3
-#define com_JoinComputeMic	4
-#define com_JoinDecrypt		5
+#define com_ADV_HELP			0
+#define com_ComputeMic			1
+#define com_PayloadEncrypt		2
+#define com_PayloadDecrypt		3
+#define com_JoinComputeMic		4
+#define com_JoinDecrypt			5
 #define com_JoinComputeSKeys	6
 
 float stat_ComputeMic		= 0;
@@ -128,34 +129,34 @@ void fJoinComputeSKeys(){
 }
 
 void short_help(){
-	pritnf("\n--------------------help--------------------------\n\n                [comand_number][comand_args]\n\nComputeMic\t\t1\nPayloadEncrypt\t2\nPayloadDecrypt\t3\nJoinComputeMic\t4\nJoinDecrypt\t\t5\nJoinComputeSKeys\t6\nADV_HELP\t\t0\n\n\nvoid LoRaMacComputeMic(       const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t address,\n                              uint8_t dir,\n                              uint32_t sequenceCounter,\n                              uint32_t *mic );\n\n\nvoid LoRaMacPayloadEncrypt(   const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t address,\n                              uint8_t dir,\n                              uint32_t sequenceCounter,\n                              uint8_t *encBuffer );\n\nvoid LoRaMacPayloadDecrypt(   const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t address,\n                              uint8_t dir,\n                              uint32_t sequenceCounter,\n                              uint8_t *decBuffer );\n\nvoid LoRaMacJoinComputeMic(   const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t *mic );\n\nvoid LoRaMacJoinDecrypt(      const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint8_t *decBuffer );\n\nvoid LoRaMacJoinComputeSKeys( const uint8_t *key,\n                              const uint8_t *appNonce,\n                              uint16_t devNonce,\n                              uint8_t *nwkSKey,\n                              uint8_t *appSKey );\n");
+	printf("\n--------------------help--------------------------\n\n                [comand_number][comand_args]\n\nComputeMic\t\t1\nPayloadEncrypt\t\t2\nPayloadDecrypt\t\t3\nJoinComputeMic\t\t4\nJoinDecrypt\t\t5\nJoinComputeSKeys\t6\nADV_HELP\t\t0\n\n\nvoid LoRaMacComputeMic(       const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t address,\n                              uint8_t dir,\n                              uint32_t sequenceCounter,\n                              uint32_t *mic );\n\n\nvoid LoRaMacPayloadEncrypt(   const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t address,\n                              uint8_t dir,\n                              uint32_t sequenceCounter,\n                              uint8_t *encBuffer );\n\nvoid LoRaMacPayloadDecrypt(   const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t address,\n                              uint8_t dir,\n                              uint32_t sequenceCounter,\n                              uint8_t *decBuffer );\n\nvoid LoRaMacJoinComputeMic(   const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint32_t *mic );\n\nvoid LoRaMacJoinDecrypt(      const uint8_t *buffer,\n                              uint16_t size,\n                              const uint8_t *key,\n                              uint8_t *decBuffer );\n\nvoid LoRaMacJoinComputeSKeys( const uint8_t *key,\n                              const uint8_t *appNonce,\n                              uint16_t devNonce,\n                              uint8_t *nwkSKey,\n                              uint8_t *appSKey );\n");
 }
 
 void test_once(int com){
 
 	switch (com){
 
-	case ComputeMic:
+	case com_ComputeMic:
 		fComputeMic();
 		break;
 
-	case PayloadEncrypt:
+	case com_PayloadEncrypt:
 		fPayloadEncrypt();
 		break;
 
-	case PayloadDecrypt:
+	case com_PayloadDecrypt:
 		fPayloadDecrypt();
 		break;
 
-	case JoinComputeMic:
+	case com_JoinComputeMic:
 		fJoinComputeMic();
 		break;
 
-	case JoinDecrypt:
+	case com_JoinDecrypt:
 		fJoinDecrypt();
 		break;
 
-	case JoinComputeSKeys:
+	case com_JoinComputeSKeys:
 		fJoinComputeSKeys();
 		break;
 
