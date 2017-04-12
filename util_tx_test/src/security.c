@@ -12,7 +12,7 @@
 #include "../inc/aes/aes.h"
 //#include "include/linux_log.h"
 #include "../inc/security.h"
-#include "sec_errors.h"
+#include "../inc/sec_errors.h"
 
 #include <stdio.h>
 #include <stdlib.h>
