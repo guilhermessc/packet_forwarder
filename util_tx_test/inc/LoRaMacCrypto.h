@@ -36,6 +36,8 @@
 #ifndef __LORAMAC_CRYPTO_H__
 #define __LORAMAC_CRYPTO_H__
 
+void print_hex(const uint8_t *s, int size);
+
 /*!
  * Computes the LoRaMAC frame MIC field
  *
