@@ -56,6 +56,14 @@ static uint8_t sBlock[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
                           };
 
+// debugging tool
+void print_hex(const uint8_t *s, int size)
+{
+  while(size--)
+    printf("%02x.", *s++);
+  printf("\n");
+}
+
 /*!
  * AES computation context variable
  */
@@ -122,6 +130,8 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     uint8_t bufferIndex = 0;
     uint16_t ctr = 1;
 
+print_hex(buffer, size);
+
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
 
@@ -137,7 +147,7 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     aBlock[12] = ( sequenceCounter >> 16 ) & 0xFF;
     aBlock[13] = ( sequenceCounter >> 24 ) & 0xFF;
 
-    while( size >= 16 )
+    while( size > 16 )
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
         ctr++;
@@ -152,17 +162,27 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
         bufferIndex += 16;
     }
 
-// o que acontece se size inicialmente for maior q 32? Isso é possivel? // guilherme
     if( size > 0 )
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
         // aes_encrypt( aBlock, sBlock, &AesContext );
         memcpy(sBlock, aBlock, 16);
-        encrypt(sBlock, 16, key, NULL);
+print_hex(sBlock, 16);
+        // TODO: fix encryption padding algorithm from openssl default to zero_padding
+        printf("WARNING %d actual size should be 16\n", encrypt(sBlock, 16, key, NULL));
+        /*
+         * i'll leave this message here but
+         * appearently there is no harm in
+         * this case but if it had to pad
+         * something then it would differ
+         * from loraWAN specs.
+         */
+print_hex(sBlock, 16);
         for( i = 0; i < size; i++ )
         {
             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
         }
+print_hex(encBuffer, 16);
     }
 }
 
