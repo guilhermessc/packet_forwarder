@@ -1,6 +1,6 @@
 TODO:
 
-	- Modify the makefile to add the dependencies
+	- Change the padding algorithm
 	- Create an input file to test the code
 	- Test it!
 	- Compare the output files
@@ -8,4 +8,5 @@ TODO:
 
 DONE:
 
-	- Create a source code to call the modified functions
+	It's compiling - Modify the makefile to add the dependencies
+	Ok - Create a source code to call the modified functions
