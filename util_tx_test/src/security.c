@@ -30,11 +30,13 @@
 int encrypt(uint8_t *plaintext, size_t plaintext_len,
 					uint8_t *key, unsigned char *iv)
 {
+
 	EVP_CIPHER_CTX *ctx;
 	int len, ciphertext_len;
 	uint8_t ciphertext[NUM_ECC_DIGITS];
 	/* Create and initialize the context */
 	ctx = EVP_CIPHER_CTX_new();
+
 	if (!ctx)
 		return ERROR_EVP_CIPHER_CTX_NEW;
 	/*
@@ -44,12 +46,14 @@ int encrypt(uint8_t *plaintext, size_t plaintext_len,
 	 * IV size for *most* modes is the same as the block size. For AES this
 	 * is 128 bits
 	 */
-	if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1)
+
+	if (EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
 		return ERROR_EVP_ENC_INIT;
 	/*
 	 * Provide the message to be encrypted, and obtain the encrypted output.
 	 * EVP_EncryptUpdate can be called multiple times if necessary
 	 */
+
 	if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext,
 							plaintext_len) != 1)
 		return ERROR_EVP_ENC_UPDATE;
@@ -128,7 +132,7 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	 * IV size for *most* modes is the same as the block size. For AES this
 	 * is 128 bits
 	 */
-	if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1)
+	if (EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
 		return ERROR_EVP_DEC_INIT;
 	/*
 	 * Provide the message to be decrypted, and obtain the plaintext output.
