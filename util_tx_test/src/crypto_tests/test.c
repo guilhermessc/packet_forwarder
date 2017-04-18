@@ -40,22 +40,63 @@ void fComputeMic(){
 }
 
 void fPayloadEncrypt(){
-	uint8_t *buffer;
+	uint8_t buffer[65];
 	uint16_t size, i;
-	uint8_t *key;
+	uint8_t key[17];
 	uint32_t address;
 	uint8_t dir;
 	uint32_t sequenceCounter;
-	uint8_t *encBuffer; // caso falhe tentar alocar dinamicamente e reportar para Hélmiton
+	uint8_t encBuffer[100];
 
-	scanf("%s %o %s %lo %hho %lo", buffer, &size, key, &address, &dir, &sequenceCounter);
+	//char apagar[100];
+
+	//scanf(" %s %hd %s %d %hhd %d", buffer, &size, apagar, &address, &dir, &sequenceCounter);
+	buffer[0] = 0x30;
+	buffer[1] = 0x31;
+	buffer[2] = 0x31;
+	buffer[3] = 0x31;
+	buffer[4] = 0x31;
+	buffer[5] = 0x31;
+	buffer[6] = 0x31;
+	buffer[7] = 0x31;
+	buffer[8] = 0x31;
+	buffer[9] = 0x31;
+	buffer[10] = 0x31;
+	buffer[11] = 0x31;
+	buffer[12] = 0x31;
+	buffer[13] = 0x31;
+	buffer[14] = 0x31;
+	buffer[15] = 0x31;
+
+	size = 16;
+
+	key[0] = 0x30;
+	key[1] = 0x31;
+	key[2] = 0x31;
+	key[3] = 0x31;
+	key[4] = 0x31;
+	key[5] = 0x31;
+	key[6] = 0x31;
+	key[7] = 0x31;
+	key[8] = 0x31;
+	key[9] = 0x31;
+	key[10] = 0x31;
+	key[11] = 0x31;
+	key[12] = 0x31;
+	key[13] = 0x31;
+	key[14] = 0x31;
+	key[15] = 0x31;
+
+	address = 32;
+
+	dir = 1;
+
+	sequenceCounter = 2;
+
 	LoRaMacPayloadEncrypt( buffer, size, key, address, dir, sequenceCounter, encBuffer );
 
 	printf("Encrypted buffer:\t");
-	for (i=0; i< size; ++i) {
-		printf("%o.", encBuffer[i]);
-	}
-	printf("\n");
+	print_hex(encBuffer, size);
 }
 
 void fPayloadDecrypt(){
@@ -71,10 +112,7 @@ void fPayloadDecrypt(){
 	LoRaMacPayloadDecrypt( buffer, size, key, address, dir, sequenceCounter, decBuffer );
 
 	printf("Decrypted buffer:\t");
-	for (i=0; i< size; ++i) {
-		printf("%o.", decBuffer[i]);
-	}
-	printf("\n");
+	print_hex(decBuffer, size);
 }
 
 void fJoinComputeMic(){
