@@ -9,7 +9,7 @@
 #include <openssl/conf.h>
 #include <openssl/cmac.h>
 #include "../inc/ecc.h"
-#include "../inc/aes/aes.h"
+#include "../inc/aes.h"
 #include "../inc/linux_log.h"
 #include "../inc/security.h"
 #include "../inc/sec_errors.h"
@@ -30,13 +30,11 @@
 int encrypt(uint8_t *plaintext, size_t plaintext_len,
 					uint8_t *key, unsigned char *iv)
 {
-
 	EVP_CIPHER_CTX *ctx;
 	int len, ciphertext_len;
 	uint8_t ciphertext[NUM_ECC_DIGITS];
 	/* Create and initialize the context */
 	ctx = EVP_CIPHER_CTX_new();
-
 	if (!ctx)
 		return ERROR_EVP_CIPHER_CTX_NEW;
 	/*
@@ -46,14 +44,73 @@ int encrypt(uint8_t *plaintext, size_t plaintext_len,
 	 * IV size for *most* modes is the same as the block size. For AES this
 	 * is 128 bits
 	 */
+	if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1)
+		return ERROR_EVP_ENC_INIT;
+	/*
+	 * Provide the message to be encrypted, and obtain the encrypted output.
+	 * EVP_EncryptUpdate can be called multiple times if necessary
+	 */
+	if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext,
+							plaintext_len) != 1)
+		return ERROR_EVP_ENC_UPDATE;
 
+	ciphertext_len = len;
+	/*
+	 * Finalize the encryption. Further ciphertext bytes may be written at
+	 * this stage.
+	 */
+	if (EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) != 1)
+		return ERROR_EVP_ENC_FINAL;
+
+	ciphertext_len += len;
+
+	/* Clean up */
+	EVP_CIPHER_CTX_free(ctx);
+
+	memcpy(plaintext, ciphertext, ciphertext_len);
+
+	return ciphertext_len;
+}
+
+int encrypt_lora(uint8_t *plaintext, size_t plaintext_len,
+					uint8_t *key, unsigned char *iv)
+{
+	EVP_CIPHER_CTX *ctx;
+	size_t i, to_pad;
+	int len, ciphertext_len;
+	uint8_t  ciphertext[NUM_ECC_DIGITS];
+	
+	/* Zero-Padding for n*16 bytes blocks */
+	to_pad= 15 - plaintext_len % 16;
+	printf("To-pad: %lu \n ", to_pad);
+	if (to_pad > 0){
+		for (i = plaintext_len+to_pad; i >= plaintext_len; i--)
+			plaintext[i] = 0x00;
+	} 
+	plaintext_len += to_pad;
+	printf("\nPadded:\n");
+	for(i = 0; i < 16; i++){
+		printf("0x%02X ", (unsigned) plaintext[i]);
+	}
+	printf("\n");
+
+	/* Create and initialize the context */
+	ctx = EVP_CIPHER_CTX_new();
+	if (!ctx)
+		return ERROR_EVP_CIPHER_CTX_NEW;
+	/*
+	 * Initialize the encryption operation. IMPORTANT - ensure you use a key
+	 * and IV size appropriate for your cipher
+	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
+	 * IV size for *most* modes is the same as the block size. For AES this
+	 * is 128 bits
+	 */
 	if (EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
 		return ERROR_EVP_ENC_INIT;
 	/*
 	 * Provide the message to be encrypted, and obtain the encrypted output.
 	 * EVP_EncryptUpdate can be called multiple times if necessary
 	 */
-
 	if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext,
 							plaintext_len) != 1)
 		return ERROR_EVP_ENC_UPDATE;
@@ -132,7 +189,7 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	 * IV size for *most* modes is the same as the block size. For AES this
 	 * is 128 bits
 	 */
-	if (EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
+	if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1)
 		return ERROR_EVP_DEC_INIT;
 	/*
 	 * Provide the message to be decrypted, and obtain the plaintext output.
@@ -153,6 +210,92 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	plaintext_len += len;
 	/* Clean up */
 	EVP_CIPHER_CTX_free(ctx);
+
+	memcpy(ciphertext, plaintext, plaintext_len);
+
+	return plaintext_len;
+}
+
+int decrypt_lora(uint8_t *ciphertext, size_t ciphertext_len,
+		uint8_t *key, uint8_t *iv)
+{
+	EVP_CIPHER_CTX *ctx;
+	size_t to_pad;
+	int i, len, plaintext_len;
+	uint8_t plaintext[NUM_ECC_DIGITS];
+
+	/* Zero-Padding for n*16 bytes blocks */
+	to_pad = 15 - ciphertext_len % 16;
+	printf("To-pad: %lu \n", to_pad);
+	if (to_pad > 0){
+		for (i = ciphertext_len+to_pad; i >= ciphertext_len; i--)
+			ciphertext[i] = 0x00;
+	}
+	ciphertext_len += to_pad;
+
+	printf("\nPadded:\n");
+	for(i = 0; i < 16; i++){
+		printf("0x%02X ", (unsigned) ciphertext[i]);
+	}
+	printf("\n");
+
+	/* Create and initialize the context */
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
+	ctx = EVP_CIPHER_CTX_new();
+	if (!ctx)
+		return ERROR_EVP_CIPHER_CTX_NEW;
+printf("************************************************\n");
+	/*
+	 * Initialize the decryption operation. IMPORTANT - ensure you use a key
+	 * and IV size appropriate for your cipher
+	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
+	 * IV size for *most* modes is the same as the block size. For AES this
+	 * is 128 bits
+	 */
+	if (EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
+		return ERROR_EVP_DEC_INIT;
+printf("1************************************************\n");
+	/*
+	 * Provide the message to be decrypted, and obtain the plaintext output.
+	 * EVP_DecryptUpdate can be called multiple times if necessary
+	 */
+	if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext,
+							ciphertext_len) != 1)
+		return ERROR_EVP_DEC_UPDATE;
+printf("*2***********************************************\n");
+	/*
+	 * Finalize the decryption. Further plaintext bytes may be written at
+	 * this stage.
+	 */
+
+printf("-----------------------------------------------------\n");
+printf("\nBad format?\t");
+	for(i = 0; i < 16; i++){
+		printf("0x%02X ", (unsigned) plaintext[i]);
+	}
+printf("\n");	
+printf("len:\t\t%d\n", len);
+printf("-----------------------------------------------------\n");
+
+
+	if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
+		return ERROR_EVP_DEC_FINAL;
+printf("**3**********************************************\n");
+	
+	plaintext_len += len;
+	/* Clean up */
+	EVP_CIPHER_CTX_free(ctx);
+	
+	/*Updates unpadded text length (for zero-padding)*/
+	if (plaintext[plaintext_len-1] == 0x00){ 
+		for (i= plaintext_len-1; i > 0 ; i--){
+			if (plaintext[i] == 0x00){
+				plaintext_len --;
+			} else{
+				i = -1;
+			}
+		}
+	}
 
 	memcpy(ciphertext, plaintext, plaintext_len);
 

@@ -219,16 +219,19 @@ void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *ke
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
     // aes_encrypt( buffer, decBuffer, &AesContext );
+print_hex(buffer, size);
     memcpy(decBuffer, buffer, size);
-    encrypt(decBuffer, 16, key, NULL);
-        
-
+print_hex(decBuffer, size);
+    encrypt_lora(decBuffer, size, key, NULL);
+print_hex(decBuffer, 16);    
     // Check if optional CFList is included
     // if( size >= 16 )
-    if(size > 16)
-    {
-        encrypt(decBuffer + 16, size - 16, key, NULL);
-    }
+//     // TODO: Uncomment and test it
+//     if(size > 16)
+//     {
+// printf("ok size = %d\n", size);
+//         encrypt(decBuffer + 16, size - 16, key, NULL);
+//     }
 }
 
 void LoRaMacJoinEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *encBuffer )
@@ -236,16 +239,26 @@ void LoRaMacJoinEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t *ke
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
     // aes_encrypt( buffer, decBuffer, &AesContext );
+printf("buffer:           ");
+print_hex(buffer, size);
     memcpy(encBuffer, buffer, size);
-    decrypt(encBuffer, 16, key, NULL);
-        
 
+printf("copied buffer:    ");
+print_hex(encBuffer, size);
+
+printf("key:              ");
+print_hex(key, 16);
+    decrypt_lora(encBuffer, size, key, NULL);
+
+printf("encrypted buffer: ");
+print_hex(encBuffer, 16);
     // Check if optional CFList is included
     // if( size >= 16 )
-    if(size > 16)
-    {
-        decrypt(encBuffer + 16, size - 16, key, NULL);
-    }
+    // // TODO: Uncomment and test it
+    // if(size > 16)
+    // {
+    //     decrypt(encBuffer + 16, size - 16, key, NULL);
+    // }
 }
 
 void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint16_t devNonce, uint8_t *nwkSKey, uint8_t *appSKey )
