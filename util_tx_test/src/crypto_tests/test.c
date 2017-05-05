@@ -31,9 +31,13 @@ uint8_t Dir = 1;
 uint32_t SequenceCounter = 2;
 uint32_t Mic[4];
 uint8_t tmpBuffer[100];
-uint8_t joinAcceptCore[12] = {	0x0a, 0x0a, 0x0a, 0x0b, \
-								0x0b, 0x0b, 0x0d, 0x0d, \
-								0x0d, 0x0d, 0x01, 0x02, }; // join accept w/o MIC
+uint8_t joinAcceptCore[16] = {	
+								0x5D, 0x8D, 0xC4, 0x74, 0x78, 0x0D, 0x28, 0x2E, 0xA8, 0x11, 0x2A, 0x13, 0xCE, 0x5E, 0x8E, 0xC2 };
+								// 0x4B, 0x9C, 0x1B, 0x01, 0xE7, 0x02, 0x98, 0x7E, 0xAF, 0xD3, 0xE9, 0x71, 0xD6, 0xBB, 0xAE, 0x21 };
+								// 0xb3, 0x2f, 0x77, 0x07, 0x0a, 0xf1, 0x96, 0xce, 0xab, 0x2f, 0x59, 0x1a, 0x1f, 0x89, 0x91, 0x07 };
+								// 0x0a, 0x0a, 0x0a, 0x0b, 0x0b, 0x0b, 0x0d, 0x0d, 0x0d, 0x0d, 0x01, 0x02 };
+								// 0x3B, 0x13, 0x2E, 0xE2, 0x43, 0x73, 0x06, 0x68, 0xA5, 0xE1, 0x8C, 0xE3, 0xF7, 0xB6, 0x44, 0xC7 };
+
 uint16_t SizeJ = (uint16_t) (sizeof(joinAcceptCore)/sizeof(uint8_t));
 
 uint16_t pad16_len (uint16_t base) {
@@ -62,7 +66,7 @@ void fComputeMic(){
 
 	LoRaMacComputeMic( buffer, size, key, address, dir, sequenceCounter, mic );
 	printf("MIC:\t");
-	print_hex(mic, 4);
+	print_hex((uint8_t*)mic, 4);
 }
 
 void fPayloadEncrypt(){
@@ -124,7 +128,7 @@ void fJoinComputeMic(){
 
 	LoRaMacJoinComputeMic( buffer, size, key, mic );
 	printf("MIC:\t");
-	print_hex(mic, 4);
+	print_hex((uint8_t*)mic, 4);
 }
 
 void fJoinDecrypt(){
@@ -169,7 +173,7 @@ void fJoinComputeSKeys(){
 	uint8_t *appSKey;
 	uint16_t i;
 
-	scanf("%s %s %o", key, appNonce, devNonce);
+	// scanf("%s %s %o", key, appNonce, devNonce);
 	LoRaMacJoinComputeSKeys( key, appNonce, devNonce, nwkSKey, appSKey );
 
 	printf("NwkSKey:\t");
@@ -236,8 +240,8 @@ int main(){
 
 	short_help();
 	while(scanf("%d", &com)){
-		fJoinEncrypt();
-		// test_once(com);
+		// fJoinEncrypt();
+		test_once(com);
 	}
 
 	return 0;

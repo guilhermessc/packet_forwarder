@@ -57,7 +57,7 @@ static uint8_t sBlock[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                           };
 
 // debugging tool
-void print_hex(const uint8_t *s, int size)
+void print_hex( uint8_t *s, int size)
 {
   while(size--)
     printf("%02x.", *s++);
@@ -85,7 +85,7 @@ void print_hex(const uint8_t *s, int size)
  * \param [IN]  sequenceCounter Frame sequence counter
  * \param [OUT] mic Computed MIC field
  */
-void LoRaMacComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint32_t address, uint8_t dir, uint32_t sequenceCounter, uint32_t *mic )
+void LoRaMacComputeMic( uint8_t *buffer, uint16_t size, uint8_t *key, uint32_t address, uint8_t dir, uint32_t sequenceCounter, uint32_t *mic )
 {
     char *cmac_buffer;
 
@@ -124,7 +124,7 @@ void LoRaMacComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key
     *mic = ( uint32_t )( ( uint32_t )Mic[3] << 24 | ( uint32_t )Mic[2] << 16 | ( uint32_t )Mic[1] << 8 | ( uint32_t )Mic[0] );
 }
 
-void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint32_t address, uint8_t dir, uint32_t sequenceCounter, uint8_t *encBuffer )
+void LoRaMacPayloadEncrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint32_t address, uint8_t dir, uint32_t sequenceCounter, uint8_t *encBuffer )
 {
     uint16_t i;
     uint8_t bufferIndex = 0;
@@ -186,7 +186,7 @@ print_hex(encBuffer, 16);
     }
 }
 
-void LoRaMacPayloadDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint32_t address, uint8_t dir, uint32_t sequenceCounter, uint8_t *decBuffer )
+void LoRaMacPayloadDecrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint32_t address, uint8_t dir, uint32_t sequenceCounter, uint8_t *decBuffer )
 {
     LoRaMacPayloadEncrypt( buffer, size, key, address, dir, sequenceCounter, decBuffer );
 }
@@ -199,7 +199,7 @@ void LoRaMacPayloadDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
  * \param [IN]  key             AES key to be used (AppKey according to the specs)
  * \param [OUT] mic Computed MIC field
  */
-void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint32_t *mic )
+void LoRaMacJoinComputeMic( uint8_t *buffer, uint16_t size, uint8_t *key, uint32_t *mic )
 {
     // AES_CMAC_Init( AesCmacCtx );
 
@@ -214,7 +214,7 @@ void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t 
     *mic = ( uint32_t )( ( uint32_t )Mic[3] << 24 | ( uint32_t )Mic[2] << 16 | ( uint32_t )Mic[1] << 8 | ( uint32_t )Mic[0] );
 }
 
-void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *decBuffer )
+void LoRaMacJoinDecrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint8_t *decBuffer )
 {
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
@@ -234,8 +234,10 @@ print_hex(decBuffer, 16);
 //     }
 }
 
-void LoRaMacJoinEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *encBuffer )
+void LoRaMacJoinEncrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint8_t *encBuffer )
 {
+    int len;
+
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
     // aes_encrypt( buffer, decBuffer, &AesContext );
@@ -248,9 +250,9 @@ print_hex(encBuffer, size);
 
 printf("key:              ");
 print_hex(key, 16);
-    decrypt_lora(encBuffer, size, key, NULL);
+    len = decrypt_lora(encBuffer, size, key, NULL);
 
-printf("encrypted buffer: ");
+printf("encrypted buffer(%d): \t", len);
 print_hex(encBuffer, 16);
     // Check if optional CFList is included
     // if( size >= 16 )
@@ -261,7 +263,7 @@ print_hex(encBuffer, 16);
     // }
 }
 
-void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint16_t devNonce, uint8_t *nwkSKey, uint8_t *appSKey )
+void LoRaMacJoinComputeSKeys( uint8_t *key, uint8_t *appNonce, uint16_t devNonce, uint8_t *nwkSKey, uint8_t *appSKey )
 {
     uint8_t nonce[16];
     uint8_t *pDevNonce = ( uint8_t * )&devNonce;
