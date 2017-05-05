@@ -81,7 +81,7 @@ int encrypt_lora(uint8_t *plaintext, size_t plaintext_len,
 	uint8_t  ciphertext[NUM_ECC_DIGITS];
 	
 	/* Zero-Padding for n*16 bytes blocks */
-	to_pad= 15 - plaintext_len % 16;
+	to_pad= 15 - (plaintext_len-1) % 16;
 	printf("To-pad: %lu \n ", to_pad);
 	if (to_pad > 0){
 		for (i = plaintext_len+to_pad; i >= plaintext_len; i--)
@@ -219,13 +219,16 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 int decrypt_lora(uint8_t *ciphertext, size_t ciphertext_len,
 		uint8_t *key, uint8_t *iv)
 {
+printf("ciphertext_len:\t%d\n", ciphertext_len);
+
 	EVP_CIPHER_CTX *ctx;
 	size_t to_pad;
 	int i, len, plaintext_len;
 	uint8_t plaintext[NUM_ECC_DIGITS];
 
 	/* Zero-Padding for n*16 bytes blocks */
-	to_pad = 15 - ciphertext_len % 16;
+	to_pad = 15 - (ciphertext_len-1) % 16;
+
 	printf("To-pad: %lu \n", to_pad);
 	if (to_pad > 0){
 		for (i = ciphertext_len+to_pad; i >= ciphertext_len; i--)
