@@ -82,16 +82,16 @@ int encrypt_lora(uint8_t *plaintext, size_t plaintext_len,
 	
 	/* Zero-Padding for n*16 bytes blocks */
 	to_pad= 15 - plaintext_len % 16;
-	printf("To-pad: %lu \n ", to_pad);
+	// printf("To-pad: %lu \n ", to_pad);
 	if (to_pad > 0){
 		for (i = plaintext_len+to_pad; i >= plaintext_len; i--)
 			plaintext[i] = 0x00;
 	} 
 	plaintext_len += to_pad;
-	printf("\nPadded:\n");
-	for(i = 0; i < 16; i++){
-		printf("0x%02X ", (unsigned) plaintext[i]);
-	}
+	// printf("\nPadded:\n");
+	// for(i = 0; i < 16; i++){
+	// 	printf("0x%02X ", (unsigned) plaintext[i]);
+	// }
 	
 	/* Create and initialize the context */
 	ctx = EVP_CIPHER_CTX_new();
@@ -225,24 +225,22 @@ int decrypt_lora(uint8_t *ciphertext, size_t ciphertext_len,
 
 	/* Zero-Padding for n*16 bytes blocks */
 	to_pad = 15 - (ciphertext_len-1) % 16;
-	printf("To-pad: %lu \n ", to_pad);
+	// printf("To-pad: %lu \n ", to_pad);
 	if (to_pad > 0){
 		for (i = ciphertext_len+to_pad; i >= ciphertext_len; i--)
 			ciphertext[i] = 0x00;
 	} 
 	ciphertext_len += to_pad;
-	printf("\nPadded:\n");
-	for(i = 0; i < 16; i++){
-		printf("0x%02X ", (unsigned) ciphertext[i]);
-	}
-	printf("\n");
+	// printf("\nPadded:\n");
+	// for(i = 0; i < 16; i++){
+	// 	printf("0x%02X ", (unsigned) ciphertext[i]);
+	// }
+	// printf("\n");
 
 	/* Create and initialize the context */
 	ctx = EVP_CIPHER_CTX_new();
 	if (!ctx)
 		return ERROR_EVP_CIPHER_CTX_NEW;
-printf("1****************************************************\n");
-printf("len: \t\t%d\n", len);
 	/*
 	 * Initialize the decryption operation. IMPORTANT - ensure you use a key
 	 * and IV size appropriate for your cipher
@@ -252,8 +250,6 @@ printf("len: \t\t%d\n", len);
 	 */
 	if (EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
 		return ERROR_EVP_DEC_INIT;
-printf("2****************************************************\n");
-printf("len: \t\t%d\n", len);
 	/*
 	 * Provide the message to be decrypted, and obtain the plaintext output.
 	 * EVP_DecryptUpdate can be called multiple times if necessary
@@ -261,8 +257,6 @@ printf("len: \t\t%d\n", len);
 	if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext,
 							ciphertext_len) != 1)
 		return ERROR_EVP_DEC_UPDATE;
-printf("3****************************************************\n");
-printf("len: \t\t%d\n", len);
 
 	plaintext_len = len;
 	/*
@@ -272,8 +266,6 @@ printf("len: \t\t%d\n", len);
 	// if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
 		// return ERROR_EVP_DEC_FINAL;
 	len = 16;
-printf("4****************************************************\n");
-printf("len: \t\t%d\n", len);
 	
 	plaintext_len += len;
 	/* Clean up */
@@ -291,8 +283,6 @@ printf("len: \t\t%d\n", len);
 	}
 
 	memcpy(ciphertext, plaintext, plaintext_len);
-printf("5****************************************************\n");
-printf("len: \t\t%d\n", len);
 
 	return plaintext_len;
 }

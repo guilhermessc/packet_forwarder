@@ -219,19 +219,21 @@ void LoRaMacJoinDecrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint8_t *
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
     // aes_encrypt( buffer, decBuffer, &AesContext );
-print_hex(buffer, size);
     memcpy(decBuffer, buffer, size);
-print_hex(decBuffer, size);
     encrypt_lora(decBuffer, size, key, NULL);
-print_hex(decBuffer, 16);    
     // Check if optional CFList is included
+    // TODO: Uncomment and test it
+    
+    // original code uses '>= 16' to compare but
+    // i don't see why i should extend the block
+    // if it fits exactly the whole block so i'm
+    // comparing it with '> 16'.
     // if( size >= 16 )
-//     // TODO: Uncomment and test it
-//     if(size > 16)
-//     {
-// printf("ok size = %d\n", size);
-//         encrypt(decBuffer + 16, size - 16, key, NULL);
-//     }
+    if(size > 16)
+    {
+printf("ok size = %d\n", size);
+        encrypt_lora(decBuffer + 16, size - 16, key, NULL);
+    }
 }
 
 void LoRaMacJoinEncrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint8_t *encBuffer )
@@ -241,26 +243,16 @@ void LoRaMacJoinEncrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint8_t *
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
     // aes_encrypt( buffer, decBuffer, &AesContext );
-printf("buffer:           ");
-print_hex(buffer, size);
     memcpy(encBuffer, buffer, size);
 
-printf("copied buffer:    ");
-print_hex(encBuffer, size);
-
-printf("key:              ");
-print_hex(key, 16);
     len = decrypt_lora(encBuffer, size, key, NULL);
 
-printf("encrypted buffer(%d): \t", len);
-print_hex(encBuffer, 16);
     // Check if optional CFList is included
     // if( size >= 16 )
-    // // TODO: Uncomment and test it
-    // if(size > 16)
-    // {
-    //     decrypt(encBuffer + 16, size - 16, key, NULL);
-    // }
+    if(size > 16)
+    {
+        decrypt(encBuffer + 16, size - 16, key, NULL);
+    }
 }
 
 void LoRaMacJoinComputeSKeys( uint8_t *key, uint8_t *appNonce, uint16_t devNonce, uint8_t *nwkSKey, uint8_t *appSKey )
