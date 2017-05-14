@@ -12,13 +12,6 @@
 #define com_JoinEncrypt			6
 #define com_JoinComputeSKeys	7
 
-// float stat_ComputeMic		= 0;
-// float stat_PayloadEncrypt	= 0;
-// float stat_PayloadDecrypt	= 0;
-// float stat_JoinComputeMic	= 0;
-// float stat_JoinDecrypt		= 0;
-// float stat_JoinComputeSKeys	= 0;
-
 uint8_t Key[16] = {	0x30, 0x31, 0x31, 0x31, 0x31, 0x31, \
 					0x31, 0x31, 0x31, 0x31, 0x31, 0x31, \
 					0x31, 0x31, 0x31, 0x31 }; 
