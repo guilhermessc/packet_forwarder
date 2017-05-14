@@ -187,7 +187,11 @@ void fJoinComputeSKeys(){
 	uint8_t *appSKey;
 	uint16_t i;
 
-
+	key = Key;
+	appNonce = AppNonce;
+	devNonce = DevNonce;
+	nwkSKey = NwkSKey;
+	appSKey = AppSKey;
 
 	LoRaMacJoinComputeSKeys( key, appNonce, devNonce, nwkSKey, appSKey );
 
