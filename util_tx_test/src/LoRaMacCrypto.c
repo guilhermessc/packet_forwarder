@@ -142,8 +142,6 @@ void LoRaMacPayloadEncrypt( uint8_t *buffer, uint16_t size, uint8_t *key, uint32
     uint8_t bufferIndex = 0;
     uint16_t ctr = 1;
 
-print_hex(buffer, size);
-
     // memset( AesContext.ksch, '\0', 240 );
     // aes_set_key( key, 16, &AesContext );
 
@@ -179,22 +177,10 @@ print_hex(buffer, size);
         aBlock[15] = ( ( ctr ) & 0xFF );
         // aes_encrypt( aBlock, sBlock, &AesContext );
         memcpy(sBlock, aBlock, 16);
-print_hex(sBlock, 16);
-        // TODO: fix encryption padding algorithm from openssl default to zero_padding
-        printf("WARNING %d actual size should be 16\n", encrypt_lora(sBlock, 16, key, NULL));
-        /*
-         * i'll leave this message here but
-         * appearently there is no harm in
-         * this case but if it had to pad
-         * something then it would differ
-         * from loraWAN specs.
-         */
-print_hex(sBlock, 16);
         for( i = 0; i < size; i++ )
         {
             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
         }
-print_hex(encBuffer, 16);
     }
 }
 
