@@ -159,13 +159,13 @@ print_hex(buffer, size);
     aBlock[12] = ( sequenceCounter >> 16 ) & 0xFF;
     aBlock[13] = ( sequenceCounter >> 24 ) & 0xFF;
 
-    while( size > 16 )
+    while( size >= 16 )
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
         ctr++;
         // aes_encrypt( aBlock, sBlock, &AesContext );
         memcpy(sBlock, aBlock, 16);
-        encrypt(sBlock, 16, key, NULL);
+        encrypt_lora(sBlock, 16, key, NULL);
         for( i = 0; i < 16; i++ )
         {
             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
@@ -181,7 +181,7 @@ print_hex(buffer, size);
         memcpy(sBlock, aBlock, 16);
 print_hex(sBlock, 16);
         // TODO: fix encryption padding algorithm from openssl default to zero_padding
-        printf("WARNING %d actual size should be 16\n", encrypt(sBlock, 16, key, NULL));
+        printf("WARNING %d actual size should be 16\n", encrypt_lora(sBlock, 16, key, NULL));
         /*
          * i'll leave this message here but
          * appearently there is no harm in
