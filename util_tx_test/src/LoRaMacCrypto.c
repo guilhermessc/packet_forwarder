@@ -267,7 +267,7 @@ void LoRaMacJoinComputeSKeys( uint8_t *key, uint8_t *appNonce, uint16_t devNonce
     memcpy( nonce + 7, pDevNonce, 2 );
     // aes_encrypt( nonce, nwkSKey, &AesContext );
     memcpy(nwkSKey, nonce, sizeof( nonce ) );
-    encrypt(nwkSKey, 16, key, NULL);
+    encrypt_lora(nwkSKey, 16, key, NULL);
 
     memset( nonce, 0, sizeof( nonce ) );
     nonce[0] = 0x02;
@@ -275,5 +275,5 @@ void LoRaMacJoinComputeSKeys( uint8_t *key, uint8_t *appNonce, uint16_t devNonce
     memcpy( nonce + 7, pDevNonce, 2 );
     // aes_encrypt( nonce, appSKey, &AesContext );
     memcpy(appSKey, nonce, sizeof( nonce ) );
-    encrypt(appSKey, 16, key, NULL);
+    encrypt_lora(appSKey, 16, key, NULL);
 }

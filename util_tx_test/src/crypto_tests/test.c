@@ -38,7 +38,7 @@ uint8_t AppSKey[16] = 	{ 0xaf, 0xaf, 0xaf, 0xaf, \
 						  0xaf, 0xaf, 0xaf, 0xaf, \
 						};
 						
-uint16_t DevNonce = 0x0d0d;
+uint16_t DevNonce = 0x000f;
 uint8_t joinAcceptCore[16] = {	
 								// 0x3B, 0x13, 0x2E, 0xE2, 0x43, 0x73, 0x06, 0x68, 0xA5, 0xE1, 0x8C, 0xE3, 0xF7, 0xB6, 0x44, 0xC7 };
 								0x0a, 0x0a, 0x0a, 0x0b, 0x0b, 0x0b, 0x0d, 0x0d, 0x0d, 0x0d, 0x01, 0x02 , 0x00	};
@@ -139,7 +139,7 @@ void fJoinComputeMic(){
 	mic = Mic;
 
 	LoRaMacJoinComputeMic( buffer, size, key, mic );
-	printf("MIC:\t");
+	printf("MIC:\t\t\t");
 	print_hex((uint8_t*)mic, 4);
 }
 
@@ -191,15 +191,19 @@ void fJoinComputeSKeys(){
 	nwkSKey = NwkSKey;
 	appSKey = AppSKey;
 
+print_hex(key, 16);
+print_hex(appNonce, 4);
+printf("%lo\n", devNonce);
+
 	LoRaMacJoinComputeSKeys( key, appNonce, devNonce, nwkSKey, appSKey );
 
-	printf("NwkSKey:\t");
+	printf("NwkSKey:\t\t");
 	for (i=0; i<16; ++i) {
 		printf("%o.", nwkSKey[i]);
 	}
 	printf("\n");
 
-	printf("AppSKey:\t");
+	printf("AppSKey:\t\t");
 	for (i=0; i<16; ++i) {
 		printf("%o.", appSKey[i]);
 	}
