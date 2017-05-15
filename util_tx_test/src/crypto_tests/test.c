@@ -191,23 +191,13 @@ void fJoinComputeSKeys(){
 	nwkSKey = NwkSKey;
 	appSKey = AppSKey;
 
-print_hex(key, 16);
-print_hex(appNonce, 4);
-printf("%lo\n", devNonce);
-
 	LoRaMacJoinComputeSKeys( key, appNonce, devNonce, nwkSKey, appSKey );
 
 	printf("NwkSKey:\t\t");
-	for (i=0; i<16; ++i) {
-		printf("%o.", nwkSKey[i]);
-	}
-	printf("\n");
+	print_hex(nwkSKey, 16);
 
 	printf("AppSKey:\t\t");
-	for (i=0; i<16; ++i) {
-		printf("%o.", appSKey[i]);
-	}
-	printf("\n");
+	print_hex(appSKey, 16);
 }
 
 void short_help(){

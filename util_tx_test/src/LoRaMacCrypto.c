@@ -60,7 +60,7 @@ static uint8_t sBlock[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 void print_hex( uint8_t *s, int size)
 {
   while(size--)
-    printf("%02x.", *s++);
+    printf("%02X.", *s++);
   printf("\n");
 }
 
