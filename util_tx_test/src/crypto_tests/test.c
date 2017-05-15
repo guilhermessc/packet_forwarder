@@ -18,7 +18,8 @@ uint8_t Key[16] = {	0x30, 0x31, 0x31, 0x31, 0x31, 0x31, \
 uint8_t Buffer[16] = {	0x30, 0x31, 0x31, 0x31, 0x31, 0x31, \
 						0x31, 0x31, 0x31, 0x31, 0x31, 0x31, \
 						0x31, 0x31, 0x31, 0x31 }; 
-uint16_t SizeB = (uint16_t) (sizeof(Buffer)/sizeof(uint8_t));
+// uint16_t SizeB = (uint16_t) (sizeof(Buffer)/sizeof(uint8_t));
+uint16_t SizeB = 16;
 uint32_t Address = 32;
 uint8_t Dir = 1;
 uint32_t SequenceCounter = 2;
@@ -70,6 +71,10 @@ void fComputeMic(){
 	dir = Dir;
 	sequenceCounter = SequenceCounter;
 	mic = Mic;
+
+print_hex( buffer, 16);
+print_hex( key, 16);
+printf("%lo %u %o %u\n", size, address, dir, sequenceCounter);
 
 	LoRaMacComputeMic( buffer, size, key, address, dir, sequenceCounter, mic );
 	printf("MIC:\t");
@@ -250,7 +255,7 @@ int main(){
 
 	int com;
 
-	short_help();
+	// short_help();
 	while(scanf("%d", &com)){
 		// fJoinEncrypt();
 		test_once(com);

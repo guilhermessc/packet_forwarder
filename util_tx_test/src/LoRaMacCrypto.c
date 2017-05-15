@@ -117,8 +117,20 @@ void LoRaMacComputeMic( uint8_t *buffer, uint16_t size, uint8_t *key, uint32_t a
     memcpy(cmac_buffer, MicBlockB0, LORAMAC_MIC_BLOCK_B0_SIZE);
     memcpy(cmac_buffer + LORAMAC_MIC_BLOCK_B0_SIZE, buffer, size);
 
-    lora_cmac(cmac_buffer, LORAMAC_MIC_BLOCK_B0_SIZE + size, Mic, 16, key, NULL);
+print_hex(cmac_buffer, LORAMAC_MIC_BLOCK_B0_SIZE + size);
 
+
+    /*
+     * FIX ME:  These 3 following blocks gives the same output wich means that the first 
+     *          16 bytes of the buffer are discarded for the authentication 
+     */
+    lora_cmac(cmac_buffer, LORAMAC_MIC_BLOCK_B0_SIZE + size, Mic, 16, key, NULL);
+    
+    // lora_cmac(cmac_buffer, LORAMAC_MIC_BLOCK_B0_SIZE, Mic, 16, key, NULL);
+    // lora_cmac(cmac_buffer + LORAMAC_MIC_BLOCK_B0_SIZE, size, Mic, 16, key, NULL);
+
+    // lora_cmac(cmac_buffer + LORAMAC_MIC_BLOCK_B0_SIZE, size, Mic, 16, key, NULL);
+    
     free(cmac_buffer);
 
     *mic = ( uint32_t )( ( uint32_t )Mic[3] << 24 | ( uint32_t )Mic[2] << 16 | ( uint32_t )Mic[1] << 8 | ( uint32_t )Mic[0] );
